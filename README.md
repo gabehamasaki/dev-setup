@@ -19,7 +19,7 @@ This guide automates the installation of essential components required for Full-
 To set up your Full-Stack Laravel development environment, execute the following command to run the automated setup script:
 
 ```bash
-bash <(wget -q -O - https://raw.githubusercontent.com/clebsonsh/dev-setup/main/setup.sh)
+bash <(wget -q -O - https://raw.githubusercontent.com/gabehamasaki/dev-setup/main/setup.sh)
 ```
 
 Follow the prompts and instructions provided by the script to complete the installation.
