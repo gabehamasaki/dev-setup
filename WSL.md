@@ -1,16 +1,14 @@
 # Setup WSL Laravel
 
-# Pre-setup
+## Install WSL
 
-## Instalar WSL
-
-Abra o Terminal como administrado e instale o WSL no windows
+Open the Terminal as an administrator and install WSL on Windows:
 
 > `wsl --install`
 
-Quando esse comando terminar de rodar você terá o Ubuntu rodando dentro do Windows
+Once this command completes, you will have Ubuntu running inside Windows.
 
-Abra o terminal do ubuntu para instalar as seguites dependências
+Open the Ubuntu terminal to install the following dependencies:
 
 > `sudo add-apt-repository universe`
 
@@ -20,7 +18,7 @@ Abra o terminal do ubuntu para instalar as seguites dependências
 
 > `sudo apt install vim git network-manager libnss3-tools jq xsel curl unzip`
 
-## PHP e dependêcias do valet
+## PHP and Valet dependencies
 
 > `sudo apt install php php-cli php-fpm php-json php-intl php-common php-mysql php-zip php-gd php-mbstring php-curl php-xml php-pear php-redis php-bcmath -yqq`
 
@@ -50,9 +48,9 @@ Abra o terminal do ubuntu para instalar as seguites dependências
 
 > `sudo echo '[network]' >> /etc/wsl.conf; sudo echo 'generateResolvConf=false' >> /etc/wsl.conf`
 
-> `sudo echo 'nameserver 1.1.1.1 > /opt/valet-linux/dns-servers'`
+> `sudo echo 'nameserver 1.1.1.1' > /opt/valet-linux/dns-servers`
 
-> `sudo echo 'nameserver 8.8.8.8 >> /opt/valet-linux/dns-servers'`
+> `sudo echo 'nameserver 8.8.8.8' >> /opt/valet-linux/dns-servers`
 
 > `valet domain localhost`
 
@@ -60,15 +58,15 @@ Abra o terminal do ubuntu para instalar as seguites dependências
 
 > `sudo apt install mariadb-server`
 
-### Acesse o banco
+### Access the database
 
 > `sudo mysql`
 
-### Crie teu usuário (troque 'teuuser' e 'teupassword')
+### Create your user (replace 'youruser' and 'yourpassword')
 
-> `CREATE USER 'teuuser'@localhost IDENTIFIED BY 'teupassword';`
+> `CREATE USER 'youruser'@localhost IDENTIFIED BY 'yourpassword';`
 
-> `GRANT ALL PRIVILEGES ON *.* TO 'teuuser'@localhost;`
+> `GRANT ALL PRIVILEGES ON *.* TO 'youruser'@localhost;`
 
 > `FLUSH PRIVILEGES;`
 
@@ -78,7 +76,7 @@ Abra o terminal do ubuntu para instalar as seguites dependências
 
 > `sudo apt install redis-server`
 
-## SQLSERVER driver
+## SQL Server driver
 
 > `curl https://packages.microsoft.com/keys/microsoft.asc | sudo tee /etc/apt/trusted.gpg.d/microsoft.asc`
 
@@ -110,7 +108,7 @@ Abra o terminal do ubuntu para instalar as seguites dependências
 
 > `sudo phpenmod -v 8.1 sqlsrv pdo_sqlsrv`
 
-## Node e Yarn
+## Node and Yarn
 
 > `curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash`
 
@@ -122,22 +120,6 @@ Abra o terminal do ubuntu para instalar as seguites dependências
 
 > `npm install -g yarn`
 
-> `yarn config set -- --emoji true`
+> `yarn config set --emoji true`
 
-## Clone o repositório
-
-> `git clone https://github.com/clebsonsh/setup.git`
-
-## Vá para pasta do APP
-
-> `cd setup`
-
-> `composer install`
-
-> `cp .env.example .env`
-
-> `php artisan key:generate`
-
-> `valet link`
-
-abra o navegodor e digite [http://setup.localhost](http://setup.localhost)
+Happy coding with Laravel! 🚀
