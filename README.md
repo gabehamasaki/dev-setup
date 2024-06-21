@@ -1,5 +1,8 @@
 # Full-Stack Laravel Development Setup on Ubuntu 22.04
 
+> [!NOTE]
+> To install on WSL follow the steps in [WSL Manual](WSL.md)
+
 This guide automates the installation of essential components required for Full-Stack Laravel development on Ubuntu 22.04.
 
 ## Components Installed
