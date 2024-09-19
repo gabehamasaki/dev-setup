@@ -14,13 +14,11 @@ show_progress() {
   local -r pid="$2"
   local -r delay='0.1'
   local spinstr='|/-\\'
-  local temp
-
+  
   echo -ne "${BLUE}${msg}${NC}"
   while ps a | awk '{print $1}' | grep -q "$pid"; do
-    temp="${spinstr#?}"
     printf " [%c]  " "${spinstr:0:1}"
-    spinstr=$temp${spinstr%"$temp"}
+    spinstr=${spinstr:1}${spinstr:0:1}  # Rotate spin string
     sleep "$delay"
     printf "\b\b\b\b\b\b"
   done
@@ -34,10 +32,19 @@ handle_error() {
   exit 1
 }
 
+# Prompt for admin password
+read -s -p "Enter your admin password: " ADMIN_PASSWORD
+echo
+
+# Function to run a command with sudo using the provided password
+run_with_sudo() {
+  echo "$ADMIN_PASSWORD" | sudo -S "$@"
+}
+
 # Function to install a package if not already installed
 install_if_not_exists() {
-  if ! [ -x "$(command -v "$1")" ]; then
-    sudo apt install "$2" -y &> /dev/null || handle_error "Failed to install $2"
+  if ! command -v "$1" &> /dev/null; then
+    run_with_sudo apt install "$2" -y &> /dev/null || handle_error "Failed to install $2"
     show_progress "Installing $2..." $!
   fi
 }
@@ -68,7 +75,6 @@ sleep 3
 echo -e "${YELLOW}Select a supported PHP version to install...${NC}"
 select PHP_VERSION in "${php_supported_versions[@]}"; do
   if [ -n "$PHP_VERSION" ]; then
-    PHP_VERSION="${PHP_VERSION//\"/}"
     break
   fi
 done
@@ -93,31 +99,31 @@ sleep 3
 
 # Add required repositories
 if ! grep -q "^deb .*universe" /etc/apt/sources.list; then
-  sudo add-apt-repository universe -y &> /dev/null || handle_error "Failed to add 'universe' repository"
+  run_with_sudo add-apt-repository universe -y &> /dev/null || handle_error "Failed to add 'universe' repository"
   show_progress "Adding 'universe' repository..." $!
 fi
 
 if ! grep -q "^deb .*ondrej/php" /etc/apt/sources.list.d/ondrej-ubuntu-php-jammy.list 2>/dev/null; then
-  sudo add-apt-repository ppa:ondrej/php -y &> /dev/null || handle_error "Failed to add 'ondrej/php' PPA repository"
+  run_with_sudo add-apt-repository ppa:ondrej/php -y &> /dev/null || handle_error "Failed to add 'ondrej/php' PPA repository"
   show_progress "Adding 'ondrej/php' PPA repository..." $!
 fi
 
 # Update system packages
-sudo apt update &> /dev/null || handle_error "Failed to update package list"
+run_with_sudo apt update &> /dev/null || handle_error "Failed to update package list"
 show_progress "Updating package list..." $!
-sudo apt upgrade -y &> /dev/null || handle_error "Failed to upgrade packages"
+run_with_sudo apt upgrade -y &> /dev/null || handle_error "Failed to upgrade packages"
 show_progress "Upgrading packages..." $!
 
 # Install Laravel Valet dependencies
-sudo apt install git vim network-manager libnss3-tools xsel unzip -y &> /dev/null || handle_error "Failed to install Laravel Valet dependencies"
+run_with_sudo apt install git vim network-manager libnss3-tools xsel unzip -y &> /dev/null || handle_error "Failed to install Laravel Valet dependencies"
 show_progress "Installing Laravel Valet dependencies..." $!
 
 # Install PHP and required PHP extensions
-if ! [ -x "$(command -v php)" ]; then
-  sudo apt install "php$PHP_VERSION-fpm" -y &> /dev/null || handle_error "Failed to install PHP $PHP_VERSION-fpm"
+if ! command -v php &> /dev/null; then
+  run_with_sudo apt install "php$PHP_VERSION-fpm" -y &> /dev/null || handle_error "Failed to install PHP $PHP_VERSION-fpm"
   show_progress "Installing PHP $PHP_VERSION-fpm..." $!
   
-  sudo apt install -y \
+  run_with_sudo apt install -y \
     "php$PHP_VERSION" \
     "php$PHP_VERSION-cli" \
     "php$PHP_VERSION-intl" \
@@ -137,16 +143,16 @@ if ! [ -x "$(command -v php)" ]; then
 fi
 
 # Install Composer
-if ! [ -x "$(command -v composer)" ]; then
+if ! command -v composer &> /dev/null; then
   curl -sS https://getcomposer.org/installer | php &> /dev/null || handle_error "Failed to install Composer"
-  sudo mv composer.phar /usr/local/bin/composer &> /dev/null || handle_error "Failed to move Composer binary"
+  run_with_sudo mv composer.phar /usr/local/bin/composer &> /dev/null || handle_error "Failed to move Composer binary"
   show_progress "Installing Composer..." $!
   echo 'export PATH="$HOME/.config/composer/vendor/bin:$PATH"' >> ~/.bashrc
   export PATH="$HOME/.config/composer/vendor/bin:$PATH"
 fi
 
 # Install Laravel Valet
-if ! [ -x "$(command -v valet)" ]; then
+if ! command -v valet &> /dev/null; then
   composer global require cpriego/valet-linux &> /dev/null || handle_error "Failed to install Laravel Valet"
   show_progress "Installing Laravel Valet..." $!
   valet install &> /dev/null || handle_error "Failed to install Valet"
@@ -154,27 +160,27 @@ if ! [ -x "$(command -v valet)" ]; then
 fi
 
 # Install Laravel Installer
-if ! [ -x "$(command -v laravel)" ]; then
+if ! command -v laravel &> /dev/null; then
   composer global require laravel/installer &> /dev/null || handle_error "Failed to install Laravel Installer"
   show_progress "Installing Laravel Installer..." $!
 fi
 
 # Install MariaDB and set up a default user
-if ! [ -x "$(command -v mysql)" ]; then
-  sudo apt install mariadb-server -y &> /dev/null || handle_error "Failed to install MariaDB"
-  sudo mysql -e "CREATE USER '$MYSQL_USER'@'localhost' IDENTIFIED BY '$MYSQL_PASSWORD'; GRANT ALL PRIVILEGES ON *.* TO '$MYSQL_USER'@'localhost' WITH GRANT OPTION; FLUSH PRIVILEGES;" &> /dev/null || handle_error "Failed to create MariaDB user"
+if ! command -v mysql &> /dev/null; then
+  run_with_sudo apt install mariadb-server -y &> /dev/null || handle_error "Failed to install MariaDB"
+  run_with_sudo mysql -e "CREATE USER '$MYSQL_USER'@'localhost' IDENTIFIED BY '$MYSQL_PASSWORD'; GRANT ALL PRIVILEGES ON *.* TO '$MYSQL_USER'@'localhost' WITH GRANT OPTION; FLUSH PRIVILEGES;" &> /dev/null || handle_error "Failed to create MariaDB user"
   show_progress "Installing MariaDB..." $!
   show_progress "Creating MariaDB user..." $!
 fi
 
 # Install Redis
-if ! [ -x "$(command -v redis-server)" ]; then
-  sudo apt install redis-server -y &> /dev/null || handle_error "Failed to install Redis"
+if ! command -v redis-server &> /dev/null; then
+  run_with_sudo apt install redis-server -y &> /dev/null || handle_error "Failed to install Redis"
   show_progress "Installing Redis..." $!
 fi
 
 # Install NVM, Node.js, and Yarn
-if ! [ -x "$(command -v node)" ]; then
+if ! command -v node &> /dev/null; then
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash &> /dev/null || handle_error "Failed to install NVM"
   show_progress "Installing NVM..." $!
   
@@ -182,7 +188,3 @@ if ! [ -x "$(command -v node)" ]; then
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
   
-  nvm install "$NODE_VERSION" &> /dev/null || handle_error "Failed to install Node.js $NODE_VERSION"
-  show_progress "Installing Node.js $NODE_VERSION..." $!
-  
-  npm install -g yarn &> /dev/null
