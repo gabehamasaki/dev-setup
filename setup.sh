@@ -49,8 +49,8 @@ check_apt_lock() {
 # Function to install a package if not already installed
 install_if_not_exists() {
   if ! [ -x "$(command -v "$1")" ]; then
-    echo "$ADMIN_PASSWORD" | sudo -S apt install "$2" -y || handle_error "Failed to install $2"
     show_progress "Installing $2..." $!
+    echo "$ADMIN_PASSWORD" | sudo -S apt install "$2" -y || handle_error "Failed to install $2"
   fi
 }
 
@@ -111,31 +111,33 @@ sleep 3
 # Add required repositories
 check_apt_lock
 if ! grep -q "^deb .*universe" /etc/apt/sources.list; then
-  echo "$ADMIN_PASSWORD" | sudo -S add-apt-repository universe -y || handle_error "Failed to add 'universe' repository"
   show_progress "Adding 'universe' repository..." $!
+  echo "$ADMIN_PASSWORD" | sudo -S add-apt-repository universe -y || handle_error "Failed to add 'universe' repository"
 fi
 
 check_apt_lock
 if ! grep -q "^deb .*ondrej/php" /etc/apt/sources.list.d/ondrej-ubuntu-php-jammy.list 2>/dev/null; then
-  echo "$ADMIN_PASSWORD" | sudo -S add-apt-repository ppa:ondrej/php -y || handle_error "Failed to add 'ondrej/php' PPA repository"
   show_progress "Adding 'ondrej/php' PPA repository..." $!
+  echo "$ADMIN_PASSWORD" | sudo -S add-apt-repository ppa:ondrej/php -y || handle_error "Failed to add 'ondrej/php' PPA repository"
 fi
 
 # Update system packages
-echo "$ADMIN_PASSWORD" | sudo -S apt update || handle_error "Failed to update package list"
 show_progress "Updating package list..." $!
-echo "$ADMIN_PASSWORD" | sudo -S apt upgrade -y || handle_error "Failed to upgrade packages"
+echo "$ADMIN_PASSWORD" | sudo -S apt update || handle_error "Failed to update package list"
+
 show_progress "Upgrading packages..." $!
+echo "$ADMIN_PASSWORD" | sudo -S apt upgrade -y || handle_error "Failed to upgrade packages"
 
 # Install Laravel Valet dependencies
-echo "$ADMIN_PASSWORD" | sudo -S apt install git vim network-manager libnss3-tools xsel unzip -y || handle_error "Failed to install Laravel Valet dependencies"
 show_progress "Installing Laravel Valet dependencies..." $!
+echo "$ADMIN_PASSWORD" | sudo -S apt install git vim network-manager libnss3-tools xsel unzip -y || handle_error "Failed to install Laravel Valet dependencies"
 
 # Install PHP and required PHP extensions
 if ! [ -x "$(command -v php)" ]; then
-  echo "$ADMIN_PASSWORD" | sudo -S apt install "php$PHP_VERSION-fpm" -y || handle_error "Failed to install PHP $PHP_VERSION-fpm"
   show_progress "Installing PHP $PHP_VERSION-fpm..." $!
+  echo "$ADMIN_PASSWORD" | sudo -S apt install "php$PHP_VERSION-fpm" -y || handle_error "Failed to install PHP $PHP_VERSION-fpm"
   
+  show_progress "Installing PHP extensions..." $!
   echo "$ADMIN_PASSWORD" | sudo -S apt install -y \
     "php$PHP_VERSION" \
     "php$PHP_VERSION-cli" \
@@ -152,60 +154,59 @@ if ! [ -x "$(command -v php)" ]; then
     "php$PHP_VERSION-dev" \
     "php$PHP_VERSION-redis" \
     "php$PHP_VERSION-bcmath" || handle_error "Failed to install PHP extensions"
-  show_progress "Installing PHP extensions..." $!
 fi
 
 # Install Composer
 if ! [ -x "$(command -v composer)" ]; then
+  show_progress "Installing Composer..." $!
   curl -sS https://getcomposer.org/installer | php &> /dev/null || handle_error "Failed to install Composer"
   echo "$ADMIN_PASSWORD" | sudo -S mv composer.phar /usr/local/bin/composer || handle_error "Failed to move Composer binary"
-  show_progress "Installing Composer..." $!
   echo 'export PATH="$HOME/.config/composer/vendor/bin:$PATH"' >> ~/.bashrc
   export PATH="$HOME/.config/composer/vendor/bin:$PATH"
 fi
 
 # Install Laravel Valet
 if ! [ -x "$(command -v valet)" ]; then
-  echo "$ADMIN_PASSWORD" | sudo -S composer global require cpriego/valet-linux || handle_error "Failed to install Laravel Valet"
   show_progress "Installing Laravel Valet..." $!
-  echo "$ADMIN_PASSWORD" | sudo -S valet install || handle_error "Failed to install Valet"
+  echo "$ADMIN_PASSWORD" | sudo -S composer global require cpriego/valet-linux || handle_error "Failed to install Laravel Valet"
   show_progress "Installing Valet..." $!
+  echo "$ADMIN_PASSWORD" | sudo -S valet install || handle_error "Failed to install Valet"
 fi
 
 # Install Laravel Installer
 if ! [ -x "$(command -v laravel)" ]; then
-  echo "$ADMIN_PASSWORD" | sudo -S composer global require laravel/installer || handle_error "Failed to install Laravel Installer"
   show_progress "Installing Laravel Installer..." $!
+  echo "$ADMIN_PASSWORD" | sudo -S composer global require laravel/installer || handle_error "Failed to install Laravel Installer"
 fi
 
 # Install MariaDB and set up a default user
 if ! [ -x "$(command -v mysql)" ]; then
+  show_progress "Installing MariaDB..." $!
   echo "$ADMIN_PASSWORD" | sudo -S apt install mariadb-server -y || handle_error "Failed to install MariaDB"
   echo "$ADMIN_PASSWORD" | sudo -S mysql -e "CREATE USER '$MYSQL_USER'@'localhost' IDENTIFIED BY '$MYSQL_PASSWORD'; GRANT ALL PRIVILEGES ON *.* TO '$MYSQL_USER'@'localhost' WITH GRANT OPTION; FLUSH PRIVILEGES;" || handle_error "Failed to create MariaDB user"
-  show_progress "Installing MariaDB..." $!
   show_progress "Creating MariaDB user..." $!
 fi
 
 # Install Redis
 if ! [ -x "$(command -v redis-server)" ]; then
-  echo "$ADMIN_PASSWORD" | sudo -S apt install redis-server -y || handle_error "Failed to install Redis"
   show_progress "Installing Redis..." $!
+  echo "$ADMIN_PASSWORD" | sudo -S apt install redis-server -y || handle_error "Failed to install Redis"
 fi
 
 # Install NVM, Node.js, and Yarn
 if ! [ -x "$(command -v node)" ]; then
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash || handle_error "Failed to install NVM"
   show_progress "Installing NVM..." $!
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash || handle_error "Failed to install NVM"
   
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
   
-  nvm install "$NODE_VERSION" || handle_error "Failed to install Node.js $NODE_VERSION"
   show_progress "Installing Node.js $NODE_VERSION..." $!
+  nvm install "$NODE_VERSION" || handle_error "Failed to install Node.js $NODE_VERSION"
   
-  npm install -g yarn || handle_error "Failed to install Yarn"
   show_progress "Installing Yarn..." $!
+  npm install -g yarn || handle_error "Failed to install Yarn"
 fi
 
 echo -e "${GREEN}Setup completed successfully!${NC}"
