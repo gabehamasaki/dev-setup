@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Log file
+LOGFILE="setup.log"
+exec > >(tee -a "$LOGFILE") 2>&1
+
 # Color definitions
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -61,7 +65,8 @@ install_if_not_exists "curl" "jq tmux htop"
 data=$(curl 'https://php.watch/api/v1/versions' -s) || handle_error "Failed to fetch PHP versions"
 php_supported_versions=($(echo "$data" | jq -r ".. | select((.statusLabel? != \"Unsupported\") and .statusLabel? != \"Upcoming Release\").name" | jq -r "select(. != null)"))
 
-node_supported_versions=("14" "16" "18")
+# Fetch supported Node.js versions dynamically
+node_supported_versions=($(curl -sL https://deb.nodesource.com/node_16.x/dists/stable/ | grep -oP 'node-v\K[0-9]+(\.[0-9]+)*' | sort -V | uniq | tail -n 3))
 
 # Welcome message
 echo -e "${YELLOW}Welcome to the Laravel Full-Stack Development Environment Setup Script!${NC}"
@@ -86,7 +91,7 @@ done
 
 # Select Node.js version
 echo -e "${YELLOW}Select a Node.js version to install...${NC}"
-select NODE_VERSION in ${node_supported_versions[@]}; do
+select NODE_VERSION in "${node_supported_versions[@]}"; do
   if [ -n "$NODE_VERSION" ]; then
     break
   fi
