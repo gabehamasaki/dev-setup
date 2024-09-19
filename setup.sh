@@ -13,13 +13,13 @@ show_progress() {
   local -r msg="$1"
   local -r pid="$2"
   local -r delay='0.1'
-  local spinstr='|/-\'
+  local spinstr='|/-\\'
   local temp
 
   echo -ne "${BLUE}${msg}${NC}"
   while ps a | awk '{print $1}' | grep -q "$pid"; do
     temp="${spinstr#?}"
-    printf " [%c]  " "$spinstr"
+    printf " [%c]  " "${spinstr:0:1}"
     spinstr=$temp${spinstr%"$temp"}
     sleep "$delay"
     printf "\b\b\b\b\b\b"
@@ -75,7 +75,7 @@ done
 
 # Select Node.js version
 echo -e "${YELLOW}Select a Node.js version to install...${NC}"
-select NODE_VERSION in ${node_supported_versions[@]}; do
+select NODE_VERSION in "${node_supported_versions[@]}"; do
   if [ -n "$NODE_VERSION" ]; then
     break
   fi
@@ -116,7 +116,8 @@ show_progress "Installing Laravel Valet dependencies..." $!
 if ! [ -x "$(command -v php)" ]; then
   sudo apt install "php$PHP_VERSION-fpm" -y &> /dev/null || handle_error "Failed to install PHP $PHP_VERSION-fpm"
   show_progress "Installing PHP $PHP_VERSION-fpm..." $!
-  sudo apt install \
+  
+  sudo apt install -y \
     "php$PHP_VERSION" \
     "php$PHP_VERSION-cli" \
     "php$PHP_VERSION-intl" \
@@ -131,7 +132,7 @@ if ! [ -x "$(command -v php)" ]; then
     "php$PHP_VERSION-xml" \
     "php$PHP_VERSION-dev" \
     "php$PHP_VERSION-redis" \
-    "php$PHP_VERSION-bcmath" -yqq &> /dev/null || handle_error "Failed to install PHP extensions"
+    "php$PHP_VERSION-bcmath" &> /dev/null || handle_error "Failed to install PHP extensions"
   show_progress "Installing PHP extensions..." $!
 fi
 
@@ -161,7 +162,7 @@ fi
 # Install MariaDB and set up a default user
 if ! [ -x "$(command -v mysql)" ]; then
   sudo apt install mariadb-server -y &> /dev/null || handle_error "Failed to install MariaDB"
-  sudo mysql -e "CREATE USER '$MYSQL_USER'@localhost IDENTIFIED BY '$MYSQL_PASSWORD'; GRANT ALL PRIVILEGES ON *.* TO '$MYSQL_USER'@localhost; FLUSH PRIVILEGES;" &> /dev/null || handle_error "Failed to create MariaDB user"
+  sudo mysql -e "CREATE USER '$MYSQL_USER'@'localhost' IDENTIFIED BY '$MYSQL_PASSWORD'; GRANT ALL PRIVILEGES ON *.* TO '$MYSQL_USER'@'localhost' WITH GRANT OPTION; FLUSH PRIVILEGES;" &> /dev/null || handle_error "Failed to create MariaDB user"
   show_progress "Installing MariaDB..." $!
   show_progress "Creating MariaDB user..." $!
 fi
@@ -176,16 +177,12 @@ fi
 if ! [ -x "$(command -v node)" ]; then
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash &> /dev/null || handle_error "Failed to install NVM"
   show_progress "Installing NVM..." $!
+  
   export NVM_DIR="$HOME/.nvm"
   [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
   [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+  
   nvm install "$NODE_VERSION" &> /dev/null || handle_error "Failed to install Node.js $NODE_VERSION"
   show_progress "Installing Node.js $NODE_VERSION..." $!
-  npm install -g yarn &> /dev/null || handle_error "Failed to install Yarn"
-  show_progress "Installing Yarn..." $!
-  yarn config set --emoji true &> /dev/null
-  nvm use "$NODE_VERSION" &> /dev/null
-fi
-
-# Add custom aliases to .bashrc
-echo -ne "${BLUE}
+  
+  npm install -g yarn &> /dev/null
